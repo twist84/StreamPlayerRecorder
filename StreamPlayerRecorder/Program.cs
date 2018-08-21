@@ -114,7 +114,7 @@ namespace StreamPlayerRecorder
                             if (RecordStreamThread.ThreadState == ThreadState.Running)
                                 RecordStreamThread.Abort();
 
-                                Thread.Sleep(1000 * 18);
+                                Thread.Sleep(1000 * SongInfo.StreamDelay);
 
                             SongInfo.CurrentSong = TempID3;
                             SongInfo.Elapsed = 0;
