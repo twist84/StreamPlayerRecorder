@@ -23,8 +23,8 @@ namespace StreamPlayerRecorder
 
             new Thread(() => UpdateSongInfo()).Start();
             Thread.Sleep(TickRate);
-            //new Thread(() => PlayStream(20)).Start();
-            RecordStreamThread = new Thread(() => RecordStream(SongInfo.CurrentSong));
+            new Thread(() => PlayStream(20)).Start();
+            RecordStreamThread = new Thread(RecordStream);
             RecordStreamThread.Start();
 
 
@@ -114,12 +114,17 @@ namespace StreamPlayerRecorder
                             if (RecordStreamThread.ThreadState == ThreadState.Running)
                                 RecordStreamThread.Abort();
 
+                                Thread.Sleep(1000 * 18);
+
+                            SongInfo.CurrentSong = TempID3;
+                            SongInfo.Elapsed = 0;
+
                             if (RecordStreamThread.ThreadState == ThreadState.Aborted)
                             {
                                 if (Mp3Reader != null) Mp3Reader = null;
                                 if (Mp3Writer != null) Mp3Writer = null;
 
-                                RecordStreamThread = new Thread(() => RecordStream(TempID3, true));
+                                RecordStreamThread = new Thread(RecordStream);
                                 RecordStreamThread.Start();
                             }
                         }
@@ -133,13 +138,8 @@ namespace StreamPlayerRecorder
         internal static MediaFoundationReader Mp3Reader = null;
         internal static LameMP3FileWriter Mp3Writer = null;
 
-        internal static void RecordStream(ID3TagData CurrentSong, bool ShouldSleep = false)
+        internal static void RecordStream()
         {
-            if (ShouldSleep) Thread.Sleep(1000 * 16);
-            SongInfo.CurrentSong = CurrentSong;
-            SongInfo.Elapsed = 0;
-            Thread.Sleep(1000 * 1);
-
             if (SongInfo.IsIndividial && !Directory.Exists($".\\{SongInfo.RadioStation.Name}\\")) Directory.CreateDirectory($".\\{Regex.Replace(SongInfo.RadioStation.Name, "\\/", "-")}\\");
 
             string Mp3FilePath = $"{SongInfo.RadioStation.Name}";
