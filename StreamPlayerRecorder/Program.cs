@@ -100,7 +100,6 @@ namespace StreamPlayerRecorder
         internal static void UpdateSongInfo()
         {
             ID3TagData TempID3 = new ID3TagData();
-            int TempWait = 0;
 
             using (WebClient client = new WebClient())
             {
@@ -115,8 +114,14 @@ namespace StreamPlayerRecorder
                             if (RecordStreamThread.ThreadState == ThreadState.Running)
                                 RecordStreamThread.Abort();
 
-                            RecordStreamThread = new Thread(() => RecordStream(TempID3, true));
-                            RecordStreamThread.Start();
+                            if (RecordStreamThread.ThreadState == ThreadState.Aborted)
+                            {
+                                if (Mp3Reader != null) Mp3Reader = null;
+                                if (Mp3Writer != null) Mp3Writer = null;
+
+                                RecordStreamThread = new Thread(() => RecordStream(TempID3, true));
+                                RecordStreamThread.Start();
+                            }
                         }
                     }
 
@@ -125,19 +130,11 @@ namespace StreamPlayerRecorder
             }
         }
 
-        internal static string CleanFileName(string fileName)
-        {
-            return Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
-        }
-
         internal static MediaFoundationReader Mp3Reader = null;
         internal static LameMP3FileWriter Mp3Writer = null;
 
         internal static void RecordStream(ID3TagData CurrentSong, bool ShouldSleep = false)
         {
-            if (Mp3Reader != null) Mp3Reader = null;
-            if (Mp3Writer != null) Mp3Writer = null;
-
             if (ShouldSleep) Thread.Sleep(1000 * 16);
             SongInfo.CurrentSong = CurrentSong;
             SongInfo.Elapsed = 0;
@@ -152,6 +149,8 @@ namespace StreamPlayerRecorder
             using (Mp3Writer = new LameMP3FileWriter($".\\{Mp3FilePath}.mp3", Mp3Reader.WaveFormat, SongInfo.Bitrate, SongInfo.CurrentSong))
                 Mp3Reader.CopyTo(Mp3Writer);
         }
+
+        internal static string CleanFileName(string fileName) => Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
 
         internal static void PlayStream(int InitialVolume)
         {
