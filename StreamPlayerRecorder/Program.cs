@@ -27,8 +27,6 @@ namespace StreamPlayerRecorder
             RecordStreamThread = new Thread(RecordStream);
             RecordStreamThread.Start();
 
-
-
             while (true)
             {
                 SongInfo.Time = TimeSpan.FromSeconds(SongInfo.Elapsed);
@@ -46,59 +44,41 @@ namespace StreamPlayerRecorder
             }
         }
 
+        internal static bool MetalRockRadio;
+
         internal static bool SetupSongInfo()
         {
-            SongInfo.RadioStation.Name = "Metal Rock Radio by Sonixcast";
-            SongInfo.RadioStation.Url = "http://cabhs30.sonixcast.com:9964";
-            SongInfo.RadioStation.Endpoints.Stream = $"{SongInfo.RadioStation.Url}/stream";
-            SongInfo.RadioStation.Endpoints.Song = $"{SongInfo.RadioStation.Url}/currentsong";
+            MetalRockRadio = false; // Change this to false if you want to set another station
+            if (!MetalRockRadio)
+            {
+                SongInfo.IsIndividial = false; // Needs to be false
+                SongInfo.RadioStation.Name = "Brian FM Ashburton"; // Change this to the station name
+                SongInfo.RadioStation.Endpoints.Stream = "http://5.135.154.72:10106"; // Change this to the station stream
+                SongInfo.CurrentSong = new ID3TagData { Artist = "Unknown", Title = "Unknown" }; // Can't get the song info because this app is only meant for Metal Rock Radio by Sonixcast
+            }
+            else
+            {
+                SongInfo.RadioStation.Name = "Metal Rock Radio by Sonixcast";
+                SongInfo.RadioStation.Url = "http://cabhs30.sonixcast.com:9964";
+                SongInfo.RadioStation.Endpoints.Stream = $"{SongInfo.RadioStation.Url}/stream";
+                SongInfo.RadioStation.Endpoints.Song = $"{SongInfo.RadioStation.Url}/currentsong";
 
-            SongInfo.Elapsed = 0;
-            SongInfo.Bitrate = 192;
-            //SongInfo.Volume = 50;
+                SongInfo.Elapsed = 0;
+                SongInfo.Bitrate = 192;
+                //SongInfo.Volume = 50;
 
-            SongInfo.StreamDelay = 18;
-            SongInfo.IsIndividial = true;
+                SongInfo.StreamDelay = 18;
+                SongInfo.IsIndividial = true;
+            }
 
             return true;
         }
 
-        internal struct FilterStruct
-        {
-            internal string StartsWith;
-            internal string Contains;
-
-        }
-
-        internal static List<FilterStruct> AdFilters = new List<FilterStruct>() {
-            new FilterStruct { StartsWith = "Roderick", Contains = "Carter" },
-            new FilterStruct { StartsWith = "Metal", Contains = "Radio" },
-            new FilterStruct { StartsWith = "METAL", Contains = "RADIO" },
-            new FilterStruct { StartsWith = "ID", Contains = "PSA" },
-        };
-
-        internal static bool FilterByList(string StringsToCheck, List<FilterStruct> Filters)
-        {
-            foreach (var Filter in Filters)
-                if (StringsToCheck.StartsWith(Filter.StartsWith) && StringsToCheck.Contains(Filter.Contains))
-                    return true;
-
-            return false;
-        }
-
-        internal static ID3TagData GetSong(WebClient client, string Url)
-        {
-                client.Encoding = System.Text.Encoding.ASCII;
-                string[] split = Regex.Split(client.DownloadString(Url), " - ");
-
-            if (!FilterByList(split[0], AdFilters))
-                    return new ID3TagData { Artist = split[0], Title = split[1] };
-
-            return SongInfo.CurrentSong;
-        }
-
         internal static void UpdateSongInfo()
         {
+            if (!MetalRockRadio)
+                return;
+
             ID3TagData TempID3 = new ID3TagData();
 
             using (WebClient client = new WebClient())
@@ -135,20 +115,54 @@ namespace StreamPlayerRecorder
             }
         }
 
-        internal static MediaFoundationReader Mp3Reader = null;
-        internal static LameMP3FileWriter Mp3Writer = null;
+        internal static ID3TagData GetSong(WebClient client, string Url)
+        {
+            client.Encoding = System.Text.Encoding.ASCII;
+            string[] split = Regex.Split(client.DownloadString(Url), " - ");
+
+            if (!FilterByList(split[0]))
+                return new ID3TagData { Artist = split[0], Title = split[1] };
+
+            return SongInfo.CurrentSong;
+        }
+
+        internal static bool FilterByList(string StringToCheck, bool ret = false)
+        {
+            foreach (var Filter in Filters)
+                if (StringToCheck.StartsWith(Filter.StartsWith) && StringToCheck.Contains(Filter.Contains))
+                    ret = true;
+
+            return ret;
+        }
+
+        internal static List<FilterStruct> Filters = new List<FilterStruct>() {
+            new FilterStruct { StartsWith = "Roderick", Contains = "Carter" },
+            new FilterStruct { StartsWith = "Metal", Contains = "Radio" },
+            new FilterStruct { StartsWith = "METAL", Contains = "RADIO" },
+            new FilterStruct { StartsWith = "ID", Contains = "PSA" },
+        };
+
+        internal struct FilterStruct
+        {
+            internal string StartsWith;
+            internal string Contains;
+
+        }
 
         internal static void RecordStream()
         {
             if (SongInfo.IsIndividial && !Directory.Exists($".\\{SongInfo.RadioStation.Name}\\")) Directory.CreateDirectory($".\\{Regex.Replace(SongInfo.RadioStation.Name, "\\/", "-")}\\");
 
-            string Mp3FilePath = $"{SongInfo.RadioStation.Name}";
+            string Mp3FilePath = $"{CleanFileName(SongInfo.RadioStation.Name)}";
             if (SongInfo.IsIndividial) Mp3FilePath += Path.DirectorySeparatorChar + CleanFileName($"{Regex.Replace(SongInfo.CurrentSong.Artist, "\\/", "-")} - {Regex.Replace(SongInfo.CurrentSong.Title, "\\/", "-")}");
 
             using (Mp3Reader = new MediaFoundationReader(SongInfo.RadioStation.Endpoints.Stream))
             using (Mp3Writer = new LameMP3FileWriter($".\\{Mp3FilePath}.mp3", Mp3Reader.WaveFormat, SongInfo.Bitrate, SongInfo.CurrentSong))
                 Mp3Reader.CopyTo(Mp3Writer);
         }
+
+        internal static MediaFoundationReader Mp3Reader = null;
+        internal static LameMP3FileWriter Mp3Writer = null;
 
         internal static string CleanFileName(string fileName) => Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
 
