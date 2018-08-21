@@ -1,21 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
+
+using NAudio.Lame;
 using NAudio.Wave;
 
 namespace StreamPlayerRecorder
 {
     class Program
     {
+        internal static readonly int TickRate = 1000 * 1;
+
+        internal static Thread RecordStreamThread = null;
+
         static void Main(string[] args)
         {
             if (!SetupSongInfo()) return;
 
-            if (!StartThread(new Thread(() => UpdateSongInfo(SongInfo.RadioStation.Endpoints.CurrentSong)), TickRate)) return;
+            new Thread(() => UpdateSongInfo()).Start();
+            Thread.Sleep(TickRate);
+            //new Thread(() => PlayStream(20)).Start();
+            RecordStreamThread = new Thread(() => RecordStream(SongInfo.CurrentSong));
+            RecordStreamThread.Start();
 
-            //if (!StartThread(SongInfo.RecordingThread = new Thread(RecordStream), 0)) return;
-            if (!StartThread(new Thread(() => PlayStream(50)), 0)) return;
+
 
             while (true)
             {
@@ -26,8 +38,8 @@ namespace StreamPlayerRecorder
 
                 Console.Clear();
                 Console.WriteLine($"Elapsed: {elapsed}\t\tVolume: {SongInfo.Volume:00}%");
-                Console.WriteLine($"Song: {SongInfo.CurrentSong}");
-                Console.Title = $"{SongInfo.CurrentSong}, {elapsed}, {SongInfo.Volume:00}%";
+                Console.WriteLine($"Artist: {SongInfo.CurrentSong.Artist}, Title: {SongInfo.CurrentSong.Title}");
+                Console.Title = $"{SongInfo.CurrentSong.Artist}, {SongInfo.CurrentSong.Title}, {elapsed}, {SongInfo.Volume:00}%";
 
                 Thread.Sleep(TickRate);
                 SongInfo.Elapsed++;
@@ -39,34 +51,73 @@ namespace StreamPlayerRecorder
             SongInfo.RadioStation.Name = "Metal Rock Radio by Sonixcast";
             SongInfo.RadioStation.Url = "http://cabhs30.sonixcast.com:9964";
             SongInfo.RadioStation.Endpoints.Stream = $"{SongInfo.RadioStation.Url}/stream";
-            SongInfo.RadioStation.Endpoints.CurrentSong = $"{SongInfo.RadioStation.Url}/currentsong";
+            SongInfo.RadioStation.Endpoints.Song = $"{SongInfo.RadioStation.Url}/currentsong";
 
-            SongInfo.PreviousSong = "theTwister - Suck Me Arse";
             SongInfo.Elapsed = 0;
-
-            //SongInfo.Volume = 50;
             SongInfo.Bitrate = 192;
+            //SongInfo.Volume = 50;
 
-            SongInfo.IsIndividial = false;
+            SongInfo.StreamDelay = 18;
+            SongInfo.IsIndividial = true;
 
             return true;
         }
 
-        internal static void UpdateSongInfo(string Url)
+        internal struct FilterStruct
         {
+            internal string StartsWith;
+            internal string Contains;
+
+        }
+
+        internal static List<FilterStruct> AdFilters = new List<FilterStruct>() {
+            new FilterStruct { StartsWith = "Roderick", Contains = "Carter" },
+            new FilterStruct { StartsWith = "Metal", Contains = "Radio" },
+            new FilterStruct { StartsWith = "METAL", Contains = "RADIO" },
+            new FilterStruct { StartsWith = "ID", Contains = "PSA" },
+        };
+
+        internal static bool FilterByList(string StringsToCheck, List<FilterStruct> Filters)
+        {
+            foreach (var Filter in Filters)
+                if (StringsToCheck.StartsWith(Filter.StartsWith) && StringsToCheck.Contains(Filter.Contains))
+                    return true;
+
+            return false;
+        }
+
+        internal static ID3TagData GetSong(WebClient client, string Url)
+        {
+                client.Encoding = System.Text.Encoding.ASCII;
+                string[] split = Regex.Split(client.DownloadString(Url), " - ");
+
+            if (!FilterByList(split[0], AdFilters))
+                    return new ID3TagData { Artist = split[0], Title = split[1] };
+
+            return SongInfo.CurrentSong;
+        }
+
+        internal static void UpdateSongInfo()
+        {
+            ID3TagData TempID3 = new ID3TagData();
+            int TempWait = 0;
+
             using (WebClient client = new WebClient())
             {
-                SongInfo.PreviousSong = client.DownloadString(Url);
+                SongInfo.CurrentSong = GetSong(client, SongInfo.RadioStation.Endpoints.Song);
                 while (true)
                 {
-                    SongInfo.CurrentSong = client.DownloadString(Url);
-                    if (SongInfo.CurrentSong != SongInfo.PreviousSong)
+                    TempID3 = GetSong(client, SongInfo.RadioStation.Endpoints.Song);
+                    if (SongInfo.CurrentSong.Artist != TempID3.Artist && SongInfo.CurrentSong.Title != TempID3.Title)
                     {
                         if (SongInfo.IsIndividial)
-                            RetartThread(SongInfo.RecordingThread, TickRate);
+                        {
+                            if (RecordStreamThread.ThreadState == ThreadState.Running)
+                                RecordStreamThread.Abort();
 
-                        SongInfo.PreviousSong = SongInfo.CurrentSong;
-                        SongInfo.Elapsed = 0;
+                            RecordStreamThread = new Thread(() => RecordStream(TempID3, true));
+                            RecordStreamThread.Start();
+                        }
                     }
 
                     Thread.Sleep(TickRate);
@@ -74,22 +125,38 @@ namespace StreamPlayerRecorder
             }
         }
 
-        internal static void RecordStream()
+        internal static string CleanFileName(string fileName)
         {
-            if (!SongInfo.IsIndividial && !Directory.Exists($".\\{SongInfo.RadioStation.Name}\\"))
-                Directory.CreateDirectory($".\\{SongInfo.RadioStation.Name}\\");
+            return Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
+        }
 
-            string Mp3FileName = $"{SongInfo.RadioStation.Name}";
-            if (SongInfo.IsIndividial)
-                Mp3FileName += $"\\{SongInfo.CurrentSong}";
+        internal static MediaFoundationReader Mp3Reader = null;
+        internal static LameMP3FileWriter Mp3Writer = null;
 
-            MediaFoundationEncoder.EncodeToMp3(new MediaFoundationReader(SongInfo.RadioStation.Url), $".\\{Mp3FileName}.mp3", SongInfo.Bitrate * 1000);
+        internal static void RecordStream(ID3TagData CurrentSong, bool ShouldSleep = false)
+        {
+            if (Mp3Reader != null) Mp3Reader = null;
+            if (Mp3Writer != null) Mp3Writer = null;
+
+            if (ShouldSleep) Thread.Sleep(1000 * 16);
+            SongInfo.CurrentSong = CurrentSong;
+            SongInfo.Elapsed = 0;
+            Thread.Sleep(1000 * 1);
+
+            if (SongInfo.IsIndividial && !Directory.Exists($".\\{SongInfo.RadioStation.Name}\\")) Directory.CreateDirectory($".\\{Regex.Replace(SongInfo.RadioStation.Name, "\\/", "-")}\\");
+
+            string Mp3FilePath = $"{SongInfo.RadioStation.Name}";
+            if (SongInfo.IsIndividial) Mp3FilePath += Path.DirectorySeparatorChar + CleanFileName($"{Regex.Replace(SongInfo.CurrentSong.Artist, "\\/", "-")} - {Regex.Replace(SongInfo.CurrentSong.Title, "\\/", "-")}");
+
+            using (Mp3Reader = new MediaFoundationReader(SongInfo.RadioStation.Endpoints.Stream))
+            using (Mp3Writer = new LameMP3FileWriter($".\\{Mp3FilePath}.mp3", Mp3Reader.WaveFormat, SongInfo.Bitrate, SongInfo.CurrentSong))
+                Mp3Reader.CopyTo(Mp3Writer);
         }
 
         internal static void PlayStream(int InitialVolume)
         {
             SongInfo.Volume = InitialVolume;
-
+            
             using (var mf = new MediaFoundationReader(SongInfo.RadioStation.Endpoints.Stream))
             using (var wo = new WaveOutEvent())
             {
@@ -106,34 +173,6 @@ namespace StreamPlayerRecorder
             }
         }
 
-        internal static bool StartThread(Thread thread, int TickRateInternal)
-        {
-            thread.Start();
-            Thread.Sleep(TickRateInternal);
-
-            return true;
-        }
-
-        internal static bool StopThread(Thread thread, int TickRateInternal)
-        {
-            thread.Interrupt();
-            thread.Abort();
-            Thread.Sleep(TickRateInternal);
-
-            return true;
-        }
-
-        internal static bool RetartThread(Thread thread, int TickRateInternal)
-        {
-            StopThread(SongInfo.RecordingThread, TickRate);
-            Thread.Sleep(TickRate);
-            StartThread(SongInfo.RecordingThread = new Thread(RecordStream), 0);
-
-            return true;
-        }
-
-        internal static readonly int TickRate = 1000 * 1;
-
         internal static SongInfoStruct SongInfo;
         internal struct SongInfoStruct
         {
@@ -142,7 +181,7 @@ namespace StreamPlayerRecorder
                 internal struct EndpointsStruct
                 {
                     internal string Stream;
-                    internal string CurrentSong;
+                    internal string Song;
                 };
 
                 internal string Name;
@@ -151,17 +190,15 @@ namespace StreamPlayerRecorder
             };
 
             internal RadioStationStruct RadioStation;
-            internal float Volume;
-            internal int Bitrate;
-
-            internal string PreviousSong;
-            internal string CurrentSong;
+            internal ID3TagData CurrentSong;
 
             internal TimeSpan Time;
             internal int Elapsed;
 
-            internal Thread RecordingThread;
+            internal int Bitrate;
+            internal float Volume;
 
+            internal int StreamDelay;
             internal bool IsIndividial;
         };
     }
