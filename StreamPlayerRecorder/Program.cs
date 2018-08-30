@@ -29,18 +29,12 @@ namespace StreamPlayerRecorder
 
             while (true)
             {
-                SongInfo.Time = TimeSpan.FromSeconds(SongInfo.Elapsed);
-                string elapsed = $"{SongInfo.Time.Minutes:00}:{SongInfo.Time.Seconds:00}";
-                if (SongInfo.Time.Hours > 0)
-                    elapsed = $"{SongInfo.Time.Hours: 00}:" + elapsed;
-
-                Console.Clear();
-                Console.WriteLine($"Elapsed: {elapsed}\t\tVolume: {SongInfo.Volume:00}%");
-                Console.WriteLine($"Artist: {SongInfo.CurrentSong.Artist}, Title: {SongInfo.CurrentSong.Title}");
-                Console.Title = $"{SongInfo.CurrentSong.Artist}, {SongInfo.CurrentSong.Title}, {elapsed}, {SongInfo.Volume:00}%";
+                //Console.CursorVisible = false;
+                UpdateConsoleLine(0, $"Artist: {SongInfo.CurrentSong.Artist}, Title: {SongInfo.CurrentSong.Title}");
+                UpdateConsoleLine(1, $"Elapsed: {SongInfo.Elapsed.Text}\t\tVolume: {SongInfo.Volume:00}%");
+                UpdateTitleText($"{SongInfo.CurrentSong.Artist}, {SongInfo.CurrentSong.Title}, {SongInfo.Elapsed.Text}, {SongInfo.Volume:00}%");
 
                 Thread.Sleep(TickRate);
-                SongInfo.Elapsed++;
             }
         }
 
@@ -48,7 +42,7 @@ namespace StreamPlayerRecorder
 
         internal static bool SetupSongInfo()
         {
-            MetalRockRadio = false; // Change this to false if you want to set another station
+            MetalRockRadio = true; // Change this to false if you want to set another station
             if (!MetalRockRadio)
             {
                 SongInfo.IsIndividial = false; // Needs to be false
@@ -63,7 +57,7 @@ namespace StreamPlayerRecorder
                 SongInfo.RadioStation.Endpoints.Stream = $"{SongInfo.RadioStation.Url}/stream";
                 SongInfo.RadioStation.Endpoints.Song = $"{SongInfo.RadioStation.Url}/currentsong";
 
-                SongInfo.Elapsed = 0;
+                SongInfo.Elapsed.Time = 0;
                 SongInfo.Bitrate = 192;
                 //SongInfo.Volume = 50;
 
@@ -97,7 +91,7 @@ namespace StreamPlayerRecorder
                                 Thread.Sleep(1000 * SongInfo.StreamDelay);
 
                             SongInfo.CurrentSong = TempID3;
-                            SongInfo.Elapsed = 0;
+                            SongInfo.Elapsed.Time = 0;
 
                             if (RecordStreamThread.ThreadState == ThreadState.Aborted)
                             {
@@ -110,7 +104,13 @@ namespace StreamPlayerRecorder
                         }
                     }
 
+                    SongInfo.Time = TimeSpan.FromSeconds(SongInfo.Elapsed.Time);
+                    SongInfo.Elapsed.Text = $"{SongInfo.Time.Minutes:00}:{SongInfo.Time.Seconds:00}";
+                    if (SongInfo.Time.Hours > 0)
+                        SongInfo.Elapsed.Text = $"{SongInfo.Time.Hours: 00}:" + SongInfo.Elapsed.Text;
+
                     Thread.Sleep(TickRate);
+                    SongInfo.Elapsed.Time++;
                 }
             }
         }
@@ -129,17 +129,16 @@ namespace StreamPlayerRecorder
         internal static bool FilterByList(string StringToCheck, bool ret = false)
         {
             foreach (var Filter in Filters)
-                if (StringToCheck.StartsWith(Filter.StartsWith) && StringToCheck.Contains(Filter.Contains))
+                if (StringToCheck.ToLower().StartsWith(Filter.StartsWith) && StringToCheck.ToLower().Contains(Filter.Contains))
                     ret = true;
 
             return ret;
         }
 
         internal static List<FilterStruct> Filters = new List<FilterStruct>() {
-            new FilterStruct { StartsWith = "Roderick", Contains = "Carter" },
-            new FilterStruct { StartsWith = "Metal", Contains = "Radio" },
-            new FilterStruct { StartsWith = "METAL", Contains = "RADIO" },
-            new FilterStruct { StartsWith = "ID", Contains = "PSA" },
+            new FilterStruct { StartsWith = "roderick", Contains = "carter" },
+            new FilterStruct { StartsWith = "metal", Contains = "radio" },
+            new FilterStruct { StartsWith = "id", Contains = "psa" },
         };
 
         internal struct FilterStruct
@@ -186,6 +185,27 @@ namespace StreamPlayerRecorder
             }
         }
 
+        internal static void UpdateTitleText(string Line)
+        {
+            Console.Title = Line;
+        }
+
+        internal static void UpdateConsoleLine(int LineNum, string Line)
+        {
+            FillLine(LineNum, " ");
+            Console.WriteLine(Line);
+        }
+
+        internal static void FillLine(int LineNum, string FillChar)
+        {
+            string temp = FillChar;
+            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
+            for (int i = 0; i < Console.BufferWidth; i++)
+                FillChar += temp;
+            Console.Write(FillChar);
+            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
+        }
+
         internal static SongInfoStruct SongInfo;
         internal struct SongInfoStruct
         {
@@ -205,8 +225,14 @@ namespace StreamPlayerRecorder
             internal RadioStationStruct RadioStation;
             internal ID3TagData CurrentSong;
 
+            internal struct ElapsedStruct
+            {
+                internal int Time;
+                internal string Text;
+            };
+
             internal TimeSpan Time;
-            internal int Elapsed;
+            internal ElapsedStruct Elapsed;
 
             internal int Bitrate;
             internal float Volume;
