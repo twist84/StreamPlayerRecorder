@@ -16,7 +16,7 @@ namespace StreamPlayerRecorder
         static void Main(string[] args)
         {
             if (!Remove.MinimizeButton()) return;
-            if (!Remove.MinimizeButton()) return;
+            if (!Remove.MaximizeButton()) return;
 
             IsDefaultStaion = true;
 

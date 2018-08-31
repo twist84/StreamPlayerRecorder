@@ -19,7 +19,7 @@ namespace ExtensionMethods
                 return true;
             }
 
-            public static bool MinimizeButtons()
+            public static bool MaximizeButton()
             {
                 DeleteMenu(GetSystemMenu(GetConsoleWindow(), false), SC_MAXIMIZE, MF_BYCOMMAND);
                 return true;
