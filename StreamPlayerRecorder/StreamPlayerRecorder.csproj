@@ -40,9 +40,11 @@
   <ItemGroup>
     <Reference Include="NAudio, Version=1.8.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NAudio.1.8.4\lib\net35\NAudio.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="NAudio.Lame, Version=1.0.5.22475, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NAudio.Lame.1.0.7\lib\net20\NAudio.Lame.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,26 +56,29 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Constants.cs" />
-    <Compile Include="ExtensionMethods.cs" />
-    <Compile Include="HelperFunctions.cs" />
-    <Compile Include="InputHandler.cs" />
+    <Compile Include="src\Constants.cs" />
+    <Compile Include="src\ExtensionMethods.cs" />
+    <Compile Include="src\HelperFunctions.cs" />
+    <Compile Include="src\InputHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Threads.cs" />
-    <Compile Include="Types.cs" />
+    <Compile Include="src\Threads.cs" />
+    <Compile Include="src\Types.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
+    <None Include="Properties\App.config" />
+    <None Include="Properties\packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\packages\NAudio.Lame.1.0.7\content\libmp3lame.32.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>libmp3lame.32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\packages\NAudio.Lame.1.0.7\content\libmp3lame.64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>libmp3lame.64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

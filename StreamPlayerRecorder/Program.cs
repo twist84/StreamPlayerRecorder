@@ -44,7 +44,7 @@ namespace StreamPlayerRecorder
                 ToFilter("id", "psa")
             };
 
-            new Thread(() => { while (true) { Console.BufferWidth = Console.WindowWidth = 120; Console.BufferHeight = Console.WindowHeight = 30; Thread.Sleep(100); } }).Start();
+            new Thread(() => { while (true) { try { Console.BufferWidth = Console.WindowWidth = 120; Console.BufferHeight = Console.WindowHeight = 30; } catch { } Thread.Sleep(100); } }).Start();
             new Thread(HandleInput).Start();
             new Thread(UpdateSongInfo).Start();
             new Thread(PlayStream).Start();

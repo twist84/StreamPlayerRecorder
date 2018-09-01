@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace ExtensionMethods
@@ -39,5 +41,26 @@ namespace ExtensionMethods
 
         [DllImport("kernel32.dll", ExactSpelling = true)]
         private static extern IntPtr GetConsoleWindow();
+    }
+
+    internal static class DirectoryEx
+    {
+        internal static void Empty(string path)
+        {
+            DirectoryInfo directory = new DirectoryInfo(path);
+
+            foreach (FileInfo file in directory.GetFiles())
+                file.Delete();
+            foreach (DirectoryInfo subDirectory in directory.GetDirectories())
+                subDirectory.Delete(true);
+        }
+    }
+
+    internal static class StringEx
+    {
+        internal static string TrimInvalidChars(string fileName)
+        {
+            return Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
+        }
     }
 }

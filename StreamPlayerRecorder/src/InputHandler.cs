@@ -6,6 +6,7 @@ using System.Threading;
 using NAudio.Wave;
 
 using static Constants.Constants;
+using static ExtensionMethods.DirectoryEx;
 using static Helper.Functions;
 using static Threads.Threads;
 using static Types.Types;

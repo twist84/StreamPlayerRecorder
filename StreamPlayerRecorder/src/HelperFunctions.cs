@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -59,18 +57,6 @@ namespace Helper
                         wo.Play();
                     break;
             }
-        }
-
-        internal static string CleanFileName(string fileName) => Path.GetInvalidFileNameChars().Aggregate(fileName, (current, c) => current.Replace(c.ToString(), string.Empty));
-
-        internal static void Empty(string path)
-        {
-            DirectoryInfo directory = new DirectoryInfo(path);
-
-            foreach (FileInfo file in directory.GetFiles())
-                file.Delete();
-            foreach (DirectoryInfo subDirectory in directory.GetDirectories())
-                subDirectory.Delete(true);
         }
 
         internal static void UpdateTitleText(string Line)
