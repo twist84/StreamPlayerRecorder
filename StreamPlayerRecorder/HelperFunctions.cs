@@ -9,6 +9,7 @@ using NAudio.Lame;
 using NAudio.Wave;
 
 using static Constants.Constants;
+using static Types.Types;
 
 namespace Helper
 {
@@ -16,13 +17,13 @@ namespace Helper
     {
         internal static void UpdateElapsed()
         {
-            SongInfo.Time = TimeSpan.FromSeconds(SongInfo.Elapsed.Time);
+            SongInfo.Time = TimeSpan.FromSeconds(SongInfo.Elapsed.Value);
             SongInfo.Elapsed.Text = $"{SongInfo.Time.Minutes:00}:{SongInfo.Time.Seconds:00}";
             if (SongInfo.Time.Hours > 0)
                 SongInfo.Elapsed.Text = $"{SongInfo.Time.Hours: 00}:" + SongInfo.Elapsed.Text;
 
             Thread.Sleep(TickRate);
-            SongInfo.Elapsed.Time++;
+            SongInfo.Elapsed.Value++;
         }
 
         internal static ID3TagData GetSong(WebClient client, string Url)
@@ -72,5 +73,30 @@ namespace Helper
                 subDirectory.Delete(true);
         }
 
+        internal static void UpdateTitleText(string Line)
+        {
+            Console.Title = Line;
+        }
+
+        internal static void FillLine(int LineNum, string FillChar)
+        {
+            string temp = FillChar;
+            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
+            for (int i = 0; i < Console.BufferWidth; i++)
+                FillChar += temp;
+            Console.Write(FillChar);
+            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
+        }
+
+        internal static void UpdateVolume(WaveOutEvent wo)
+        {
+            wo.Volume = SongInfo.Volume.Muted ? 0.01f * 0 : 0.01f * SongInfo.Volume.Value;
+            SongInfo.Volume.Text = SongInfo.Volume.Muted ? "Muted" : $"{SongInfo.Volume.Value:00}%";
+
+            Thread.Sleep(TickRate);
+        }
+
+        internal static Vector2D ToVector2D(int x, int y) => new Vector2D { X = x, Y = y };
+        internal static FilterStruct ToFilter(string starts_with, string contains) => new FilterStruct { StartsWith = starts_with, Contains = contains };
     }
 }

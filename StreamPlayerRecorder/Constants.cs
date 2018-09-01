@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 
 using NAudio.Lame;
 using NAudio.Wave;
@@ -9,34 +11,34 @@ namespace Constants
 {
     internal class Constants
     {
-        internal static SongInfoStruct SongInfo;
-        internal static readonly int TickRate = 1000 * 1;
-
-        internal static System.Threading.Thread RecordStreamThread = null;
+        internal static Vector2D CommandPos;
+        internal static Vector2D InputPos;
+        internal static Vector2D HelpPos;
+        internal static Vector2D InvalidPos;
 
         internal static bool IsDefaultStaion;
 
+        internal static readonly int TickRate = 1000 * 1;
 
-        internal static List<FilterStruct> Filters = new List<FilterStruct>() {
-            new FilterStruct { StartsWith = "roderick", Contains = "carter" },
-            new FilterStruct { StartsWith = "metal", Contains = "radio" },
-            new FilterStruct { StartsWith = "id", Contains = "psa" },
-        };
+        internal static SongInfoStruct SongInfo;
+
+        internal static Thread RecordStreamThread = null;
 
         internal static MediaFoundationReader Mp3Reader = null;
         internal static LameMP3FileWriter Mp3Writer = null;
 
+        internal static List<FilterStruct> Filters;
 
         internal static string[] Commands = {
-                "play, pause, p",
-                "start, stop, s",
+            "play, pause, p",
+            "start, stop, s",
 
-                "volume up, vu",
-                "volume down, vd",
-                "mute, unmute, m",
+            "volume up, vu",
+            "volume down, vd",
+            "mute, unmute, m",
 
-                "open, o",
-                "quit, q"
-            };
+            "open, o",
+            "quit, q"
+        };
     }
 }

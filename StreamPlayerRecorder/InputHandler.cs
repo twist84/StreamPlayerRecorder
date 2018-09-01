@@ -14,11 +14,7 @@ namespace InputHandler
 {
     internal class InputHandler
     {
-        public static Vector2D CommandPos = new Vector2D() { X = 0, Y = Console.WindowHeight - 3 };
-        public static Vector2D InputPos = new Vector2D() { X = 1, Y = Console.WindowHeight - 2 };
-        public static Vector2D HelpPos = new Vector2D() { X = 0, Y = 5 };
-
-        public static void HandleInput()
+        internal static void HandleInput()
         {
             string HelpText = null;
             foreach (string Command in Commands)
@@ -30,31 +26,16 @@ namespace InputHandler
             while (!exit)
             {
                 if (CommandIsValid(Console.ReadLine()))
-                    UpdateConsoleLine(new Vector2D { Y = Console.WindowHeight - 5 }, $"");
+                    UpdateConsoleLine(InvalidPos, $"");
             }
         }
 
-        public static void UpdateTitleText(string Line)
-        {
-            Console.Title = Line;
-        }
-
-        public static void UpdateConsoleLine(Vector2D Pos, string Line)
+        internal static void UpdateConsoleLine(Vector2D Pos, string Line)
         {
             InputPos.X = Console.CursorLeft;
             FillLine(Pos.Y, " ");
             Console.WriteLine(Line);
             Console.SetCursorPosition(InputPos.X, InputPos.Y);
-        }
-
-        internal static void FillLine(int LineNum, string FillChar)
-        {
-            string temp = FillChar;
-            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
-            for (int i = 0; i < Console.BufferWidth; i++)
-                FillChar += temp;
-            Console.Write(FillChar);
-            Console.SetCursorPosition(0, Console.WindowTop + LineNum);
         }
 
         internal static bool CommandIsValid(string Line)
@@ -82,20 +63,20 @@ namespace InputHandler
                     break;
                 case "volume up":
                 case "vu":
-                    if (SongInfo.Volume < 100)
-                        SongInfo.Volume += 5;
+                    if (SongInfo.Volume.Value < 100)
+                        SongInfo.Volume.Value += 5;
                     ret = true;
                     break;
                 case "volume down":
                 case "vd":
-                    if (SongInfo.Volume > 0)
-                        SongInfo.Volume -= 5;
+                    if (SongInfo.Volume.Value > 0)
+                        SongInfo.Volume.Value -= 5;
                     ret = true;
                     break;
                 case "mute":
                 case "unmute":
                 case "m":
-                    SongInfo.IsMuted = !SongInfo.IsMuted;
+                    SongInfo.Volume.Muted = !SongInfo.Volume.Muted;
                     ret = true;
                     break;
                 case "open":
@@ -113,7 +94,7 @@ namespace InputHandler
                     Environment.Exit(0);
                     break;
                 default:
-                    UpdateConsoleLine(new Vector2D { Y = Console.WindowHeight - 5 }, $"Invalid command: {Line}");
+                    UpdateConsoleLine(InvalidPos, $"Invalid command: {Line}");
                     ret = false;
                     break;
             }

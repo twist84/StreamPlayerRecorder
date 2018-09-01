@@ -35,7 +35,7 @@ namespace Threads
                                 Thread.Sleep(1000 * SongInfo.StreamDelay);
 
                                 SongInfo.CurrentSong = TempID3;
-                                SongInfo.Elapsed.Time = 0;
+                                SongInfo.Elapsed.Value = 0;
 
                                 if (RecordStreamThread.ThreadState == ThreadState.Aborted)
                                 {
@@ -70,15 +70,13 @@ namespace Threads
                 Mp3Reader.CopyTo(Mp3Writer);
         }
 
-        internal static void PlayStream(int InitialVolume)
+        internal static void PlayStream()
         {
-            SongInfo.Volume = InitialVolume;
-
             using (var mf = new MediaFoundationReader(SongInfo.RadioStation.Endpoints.Stream))
             using (var wo = new WaveOutEvent())
             {
                 wo.Init(mf);
-                wo.Volume = 0.01f * InitialVolume;
+                wo.Volume = 0.01f * SongInfo.Volume.Value;
 
                 SongInfo.PlaybackState = PlaybackState.Playing;
                 wo.Play();
@@ -86,12 +84,7 @@ namespace Threads
                 while (true)
                 {
                     PlayCheck(wo);
-                    if (SongInfo.IsMuted)
-                        wo.Volume = 0.01f * 0;
-                    else
-                        wo.Volume = 0.01f * SongInfo.Volume;
-
-                    Thread.Sleep(TickRate);
+                    UpdateVolume(wo);
                 }
             }
         }

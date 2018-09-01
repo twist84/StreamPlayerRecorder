@@ -1,5 +1,8 @@
 ﻿using System;
 
+using NAudio.Lame;
+using NAudio.Wave;
+
 namespace Types
 {
     class Types
@@ -18,21 +21,28 @@ namespace Types
             };
 
             internal RadioStationStruct RadioStation;
-            internal NAudio.Lame.ID3TagData CurrentSong;
+            internal ID3TagData CurrentSong;
 
             internal struct ElapsedStruct
             {
-                internal int Time;
+                internal int Value;
                 internal string Text;
             };
 
-            internal NAudio.Wave.PlaybackState PlaybackState;
-            internal bool IsMuted;
+            internal struct VolumeStruct
+            {
+                internal bool Muted;
+                internal int Value;
+                internal string Text;
+            };
+
+            internal PlaybackState PlaybackState;
 
             internal TimeSpan Time;
             internal ElapsedStruct Elapsed;
+            internal VolumeStruct Volume;
 
-            internal int Bitrate, Volume, StreamDelay;
+            internal int Bitrate, StreamDelay;
             internal bool IsContinuous;
         };
 
